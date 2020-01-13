@@ -1,14 +1,9 @@
-/**
- * 
- */
 package org.bgu.ise.ddb.registration;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-
-import java.io.IOException;
-import java.util.Date;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -23,6 +18,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import static com.mongodb.client.model.Filters.*;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * @author Alex
@@ -72,7 +73,7 @@ public class RegistarationController extends ParentController {
 		Document existUser = collection.find(eq("username", username)).first();
 		if (existUser == null) {
 			Document newUser = new Document("username", username).append("password", password)
-					.append("firstName", firstName).append("lastName", lastName).append("registrationDate", new Date());
+					.append("firstName", firstName).append("lastName", lastName).append("registrationTimestamp", System.currentTimeMillis());
 			collection.insertOne(newUser);
 			System.out.println("User existed");
 			status = HttpStatus.OK;
@@ -127,7 +128,7 @@ public class RegistarationController extends ParentController {
 			result = true;
 		}
 		this.mongoClient.close();
-		getNumberOfRegistredUsers(3);
+//		getNumberOfRegistredUsers(3);
 		return result;
 
 	}
@@ -144,13 +145,8 @@ public class RegistarationController extends ParentController {
 		System.out.println(days + "");
 		int result = 0;
 		openConnection();
-		Date timeNeeded = new Date();
-		Bson filter = new Document("$lt", timeNeeded.getTime() - (days * 24 * 60 * 60 * 1000));
-		System.out.println(timeNeeded.getTime() - (days * 24 * 60 * 60 * 1000));
-		Document existUser = collection.find(and(eq("password", "iren"), eq("username", "oren"))).first();
-		System.out.println(existUser.toJson());
-		result = (int) collection.count(new Document("registrationDate",filter) );
-//		return Integer.parseInt(count);
+		long timeRequaired = System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000);
+		result = (int) collection.count(gte("registrationTimestamp", timeRequaired));
 		System.out.println("count: " + result);
 		this.mongoClient.close();
 		return result;
@@ -167,10 +163,25 @@ public class RegistarationController extends ParentController {
 	@ResponseBody
 	@org.codehaus.jackson.map.annotate.JsonView(User.class)
 	public User[] getAllUsers() {
-		// :TODO your implementation
-		User u = new User("alex", "alex", "alex");
-		System.out.println(u);
-		return new User[] { u };
+		openConnection();
+		MongoCursor<Document> cursor = collection.find().iterator();
+		List <User> allUsers = new ArrayList<User>();
+		try {
+		    while (cursor.hasNext()) {
+		    	Document next = cursor.next();
+		    	String username = next.getString("username");
+		    	String password = next.getString("password");
+		    	String firstName = next.getString("firstName");
+		    	String lastName = next.getString("lastName");
+		    	allUsers.add(new User(username, password, firstName, lastName));
+		    }
+		} finally {
+		    cursor.close();
+		}
+//		User u = new User("alexk", "alex", "alex");
+//		System.out.println(u);
+		this.mongoClient.close();
+		return allUsers.toArray(new User[allUsers.size()]);
 	}
 
 }
