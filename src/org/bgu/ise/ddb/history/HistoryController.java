@@ -4,16 +4,17 @@
 package org.bgu.ise.ddb.history;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.bgu.ise.ddb.MediaItems;
 import org.bgu.ise.ddb.ParentController;
 import org.bgu.ise.ddb.User;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -21,14 +22,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.operation.OrderBy;
 
 import static com.mongodb.client.model.Filters.*;
+import static com.mongodb.client.model.Sorts.*;
+
+
 
 /**
  * @author Alex
@@ -40,13 +42,13 @@ public class HistoryController extends ParentController {
 
 	MongoClient mongoClient;
 	MongoDatabase mongoDatabase;
-	MongoCollection<Document> mongoCollection;
+	MongoCollection<Document> mongoCollectionHistory;
 
 	private void openMongoConnection() {
 		try {
 			this.mongoClient = new MongoClient("localhost", 27017);
 			this.mongoDatabase = this.mongoClient.getDatabase("db3Project");
-			this.mongoCollection = mongoDatabase.getCollection("History");
+			this.mongoCollectionHistory = mongoDatabase.getCollection("History");
 			System.out.println("Connection Established");
 		} catch (Exception e) {
 			this.mongoClient.close();
@@ -68,10 +70,19 @@ public class HistoryController extends ParentController {
 	public void insertToHistory(@RequestParam("username") String username, @RequestParam("title") String title,
 			HttpServletResponse response) {
 		openMongoConnection();
+		MongoCollection<Document> mongoCollectionUsers = mongoDatabase.getCollection("Users");
+		MongoCollection<Document> mongoCollectionItems = mongoDatabase.getCollection("Mediaitems");
 		System.out.println(username + " " + title);
-		Document newHistoy = new Document("username", username).append("title", title).append("viewTimestamp",
-				System.currentTimeMillis());
-		mongoCollection.insertOne(newHistoy);
+		Boolean isTitleExist = mongoCollectionItems.find(eq("title", title)).first() != null;
+		Boolean isUserExist = mongoCollectionUsers.find(eq("username", username)).first() != null;
+		if (isTitleExist && isUserExist) {
+			Document newHistoy = new Document("username", username).append("title", title).append("viewTimestamp",
+					System.currentTimeMillis());
+			mongoCollectionHistory.insertOne(newHistoy);
+		}else {
+			System.out.println("No such user or title");
+		}
+		
 		try {
 			this.mongoClient.close();
 		} catch (Exception e) {
@@ -100,7 +111,8 @@ public class HistoryController extends ParentController {
 	private List<HistoryPair> findViews(String reqValue, String reqField, String searchBy) {
 		openMongoConnection();
 		List<HistoryPair> allViews = new ArrayList<HistoryPair>();
-		MongoCursor<Document> cursor = mongoCollection.find(eq(searchBy, reqValue)).sort(new BasicDBObject("viewTimestamp", OrderBy.DESC)).iterator();
+		Bson sort = descending("viewTimestamp");
+		MongoCursor<Document> cursor = mongoCollectionHistory.find(eq(searchBy, reqValue)).sort(sort).iterator();
 		try {
 			while (cursor.hasNext()) {
 				Document next = cursor.next();
@@ -147,11 +159,28 @@ public class HistoryController extends ParentController {
 	@ResponseBody
 	@org.codehaus.jackson.map.annotate.JsonView(HistoryPair.class)
 	public User[] getUsersByItem(@RequestParam("title") String title) {
-		// :TODO your implementation
-		User hp = new User("aa", "aa", "aa");
-		System.out.println(hp);
-		return new User[] { hp };
-	}
+		openMongoConnection();
+		List<User> allUsers = new ArrayList<User>();
+		MongoCollection<Document> mongoCollectionUsers = mongoDatabase.getCollection("Users");
+		MongoCursor<Document> cursor = mongoCollectionHistory.find(eq("title", title)).iterator();
+		try {
+			while (cursor.hasNext()) {
+				Document next = cursor.next();
+				String username = next.getString("username");
+				Document user = mongoCollectionUsers.find(eq("username", username)).first();
+				allUsers.add(new User(user.getString("username"), user.getString("firstName"), user.getString("lastName")));
+			}
+		} finally {
+			cursor.close();
+		}
+		try {
+			this.mongoClient.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		
+		return allUsers.toArray(new User[allUsers.size()]);	}
 
 	/**
 	 * The function calculates the similarity score using Jaccard similarity
@@ -166,8 +195,25 @@ public class HistoryController extends ParentController {
 			RequestMethod.GET }, produces = "application/json")
 	@ResponseBody
 	public double getItemsSimilarity(@RequestParam("title1") String title1, @RequestParam("title2") String title2) {
-		// :TODO your implementation
+		Set<String> usersOfTitle1 = new HashSet<>();
+		
+		
+		for(User u : getUsersByItem(title1)) {
+			usersOfTitle1.add(u.getUsername());
+		}
+		Set<String> usersOfTitle2 = new HashSet<>();
+		for(User u : getUsersByItem(title2)) {
+			usersOfTitle2.add(u.getUsername());
+		}
+		Set<String> intersection = new HashSet<>(usersOfTitle1);
+		intersection.retainAll(usersOfTitle2);
+		Set<String> union = new HashSet<>(usersOfTitle1);
+		union.addAll(usersOfTitle2);
 		double ret = 0.0;
+		if(union.size() <= 0) {
+			return Double.MAX_VALUE;
+		}
+		ret = (intersection.size())/(double)(union.size());
 		return ret;
 	}
 

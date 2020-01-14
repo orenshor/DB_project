@@ -99,7 +99,18 @@ public class User {
 				+ ", firstName=" + firstName + ", lastName=" + lastName + "]";
 	}
 	
+	@Override
+	public boolean equals(Object other) {
+		if(other instanceof User) {
+			return this.getUsername() == ((User) other).getUsername();
+		}
+		return false;
+	}
 	
+	@Override
+	public int hashCode() {
+		return this.getUsername().hashCode();
+	}
 	
 	
 

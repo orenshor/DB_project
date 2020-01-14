@@ -90,8 +90,8 @@ public class ItemsController extends ParentController {
 			ps = this.oracleConnection.prepareStatement("SELECT TITLE, PROD_YEAR FROM MEDIAITEMS");
 			ResultSet r = ps.executeQuery();
 			while (r.next()) {
-				if (mongoCollection.find(eq("title", r.getNString("TITLE"))).first() != null) {
-					Document newItem = new Document("title", r.getNString("TITLE")).append("prod_year",
+				if (mongoCollection.find(eq("title", r.getString("TITLE"))).first() == null) {
+					Document newItem = new Document("title", r.getString("TITLE")).append("prod_year",
 							r.getInt("PROD_YEAR"));
 					mongoCollection.insertOne(newItem);
 				}
@@ -138,7 +138,7 @@ public class ItemsController extends ParentController {
 			br = new BufferedReader(new InputStreamReader(url.openStream()));
 			while ((line = br.readLine()) != null) {
 				String[] mediaItem = line.split(",");
-				if (mongoCollection.find(eq("title", mediaItem[0])).first() != null) {
+				if (mongoCollection.find(eq("title", mediaItem[0])).first() == null) {
 					try {
 						int prod_year = Integer.parseInt(mediaItem[1]);
 						Document newItem = new Document("title", mediaItem[0]).append("prod_year", prod_year);

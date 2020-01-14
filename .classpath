@@ -14,9 +14,9 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
-	<classpathentry kind="lib" path="C:/oren/סמסטר ז/בסיסי 3/bson-3.2.2.jar"/>
-	<classpathentry kind="lib" path="C:/oren/סמסטר ז/בסיסי 3/mongodb-driver-3.2.2.jar"/>
-	<classpathentry kind="lib" path="C:/oren/סמסטר ז/בסיסי 3/mongodb-driver-core-3.2.2.jar"/>
-	<classpathentry kind="lib" path="C:/oren/סמסטר ז/בסיסי 3/ojdbc6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shororen.BGU-USERS/git/DB_project/WebContent/WEB-INF/lib/bson-3.2.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shororen.BGU-USERS/git/DB_project/WebContent/WEB-INF/lib/mongodb-driver-3.2.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shororen.BGU-USERS/git/DB_project/WebContent/WEB-INF/lib/mongodb-driver-core-3.2.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/shororen.BGU-USERS/git/DB_project/WebContent/WEB-INF/lib/ojdbc6.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

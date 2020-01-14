@@ -44,7 +44,7 @@ public class RegistarationController extends ParentController {
 			this.mongoClient = new MongoClient("localhost", 27017);
 			System.out.println("Connection Established");
 			this.database = this.mongoClient.getDatabase("db3Project");
-			this.collection = database.getCollection("users");
+			this.collection = database.getCollection("Users");
 		} catch (Exception e) {
 			this.mongoClient.close();
 			e.printStackTrace();
